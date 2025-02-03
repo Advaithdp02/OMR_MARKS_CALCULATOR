@@ -6,6 +6,8 @@ import os
 path = '/Users/mac/Desktop/Projects/python/OMR_MARKS_CALCULATOR/test.jpg'  # This joins the current directory with the file name
 widthImg = 700
 heightImg = 700
+questions,values=5,5
+ans=[1, 2, 0, 2, 2]
 ############################
 # Load the image
 img = cv2.imread(path)
@@ -24,10 +26,10 @@ def rectContours(contours):
         area = cv2.contourArea(i)
         
         if area > 50:
-            print("area:", area)
+            # print("area:", area)
             pari = cv2.arcLength(i, True)
             approx = cv2.approxPolyDP(i, 0.02 * pari, True)
-            print(len(approx))
+            # print(len(approx))
             if len(approx) == 4:
                 rectContours.append(i)
     rectContours = sorted(rectContours, key=cv2.contourArea, reverse=True)
@@ -48,6 +50,33 @@ def getCornerPoints(contour):
     pari = cv2.arcLength(contour, True)
     approx = cv2.approxPolyDP(contour, 0.01 * pari, True)
     return approx
+
+def splitBoxes(img):
+    rows=np.vsplit(img,5)
+    boxes=[]
+    for r in rows:
+        cols=np.hsplit(r,5)
+        for box in cols:
+            boxes.append(box)
+            cv2.imshow("split",box)
+    return boxes
+
+def showAnswers(img,myIndex,grading,ans,questions,values):
+     secW=int(img.shape[1]/questions)
+     secH=int(img.shape[0]/questions)
+
+     for x in range(0,questions):
+        myAns=myIndex[x]
+        cX=(myAns*secW)+secW//2
+        cY=(x*secH)+secH//2
+        if grading[x]==1:
+            myColor=(0,255,0)
+        else:
+            myColor=(0,0,255)
+            correctAns=ans[x]
+            cv2.circle(img,((correctAns*secW)+secW//2,cY),20,(0,255,0),cv2.FILLED)
+        cv2.circle(img,(cX,cY),50,myColor,cv2.FILLED)
+     return img
 
 
 # FINDING ALL CONTOURS
@@ -75,20 +104,53 @@ if biggestcontour.size != 0 and gradepoint.size !=0:
     matrixG=cv2.getPerspectiveTransform(pt1,pt2)
     imgGradeWrapedColored=cv2.warpPerspective(img,matrixG,(325,150))
 
+    imgWrapGray=cv2.cvtColor(imgWrapedColored,cv2.COLOR_BGR2GRAY)
+    imgThresh=cv2.threshold(imgWrapGray,150,255,cv2.THRESH_BINARY_INV)[1]
+    boxes=splitBoxes(imgThresh)
+    # cv2.imshow("Test",boxes[2])
+    # print(cv2.countNonZero(boxes[2]),cv2.countNonZero(boxes[1]))
+    myPixelVal=np.zeros((questions,values))
+    countC,countR=0,0
 
-    
-    
+    for image in boxes:
+        totalPixel=cv2.countNonZero(image)
+        myPixelVal[countR,countC]=totalPixel
+        countC+=1
+        if (countC == values):
+            countR+=1
+            countC=0
+    # print(myPixelVal)
+    myIndex = []
+    for x in range(questions):
+        arr = myPixelVal[x]
+        myIndexVal = np.where(arr == np.amax(arr))[0]  # Get indices where max value occurs
+        myIndex.append(int(myIndexVal[0]))  # Append only the first index as an integer
+
+    print(myIndex)
 
 
+    grading=[]
+    for x in range(0,questions):
+        if ans[x]==myIndex[x]:
+            grading.append(1)
+        else:
+            grading.append(0)
+    print(grading)
+
+    score=(sum(grading)/questions)*100
+
+    imgResult=imgWrapedColored.copy()
+    showAnswers(imgResult,myIndex,grading,ans,questions,values)
+    cv2.imshow("result",imgResult)
 
 
-cv2.imshow("Image",img)
-cv2.imshow("Image1",imgGray)
-cv2.imshow("Image2",imgCanny)
-cv2.imshow("Image3",img)
-cv2.imshow("All Contours",imgContour)
-cv2.imshow("Biggest contour",imgbiggestcontour)
-cv2.imshow("wrap",imgWrapedColored)
-cv2.imshow("grade wrap",imgGradeWrapedColored)
-
+# cv2.imshow("Image",img)
+# cv2.imshow("Image1",imgGray)
+# cv2.imshow("Image2",imgCanny)
+# cv2.imshow("Image3",img)
+# cv2.imshow("All Contours",imgContour)
+# cv2.imshow("Biggest contour",imgbiggestcontour)
+# cv2.imshow("wrap",imgWrapedColored)
+# cv2.imshow("grade wrap",imgGradeWrapedColored)
+# cv2.imshow("grayscale",imgThresh)
 cv2.waitKey(0)
