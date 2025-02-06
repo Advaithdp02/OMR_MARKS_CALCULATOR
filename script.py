@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 ##########################
-path = '/Users/mac/Desktop/Projects/python/OMR_MARKS_CALCULATOR/test.jpg'  # This joins the current directory with the file name
+path = '/Users/mac/Desktop/Projects/python/OMR_MARKS_CALCULATOR/test2.jpg'  # This joins the current directory with the file name
 widthImg = 700
 heightImg = 700
 questions,values=5,5
@@ -12,6 +12,7 @@ ans=[1, 2, 0, 2, 2]
 # Load the image
 img = cv2.imread(path)
 imgContour=img.copy()
+imgFinal=img.copy()
 imgAllContour = img.copy()
 imgbiggestcontour=img.copy()
 imggradepoint=img.copy()
@@ -96,12 +97,14 @@ if biggestcontour.size != 0 and gradepoint.size !=0:
 
     pt1=np.float32(biggestcontour)
     pt2=np.float32([[0,0],[widthImg,0],[0,heightImg],[widthImg,heightImg]])
+    
+
     matrix=cv2.getPerspectiveTransform(pt1,pt2)
     imgWrapedColored=cv2.warpPerspective(img,matrix,(widthImg,heightImg))
 
-    pt1=np.float32(gradepoint)
-    pt2=np.float32([[0,0],[325,0],[0,150],[325,150]])
-    matrixG=cv2.getPerspectiveTransform(pt1,pt2)
+    ptg1=np.float32(gradepoint)
+    ptg2=np.float32([[0,0],[325,0],[0,150],[325,150]])
+    matrixG=cv2.getPerspectiveTransform(ptg1,ptg2)
     imgGradeWrapedColored=cv2.warpPerspective(img,matrixG,(325,150))
 
     imgWrapGray=cv2.cvtColor(imgWrapedColored,cv2.COLOR_BGR2GRAY)
@@ -140,9 +143,18 @@ if biggestcontour.size != 0 and gradepoint.size !=0:
     score=(sum(grading)/questions)*100
 
     imgResult=imgWrapedColored.copy()
-    showAnswers(imgResult,myIndex,grading,ans,questions,values)
-    cv2.imshow("result",imgResult)
+    imgRawDrawing = np.zeros_like(imgWrapedColored)
+    showAnswers(imgRawDrawing,myIndex,grading,ans,questions,values)
+    cv2.imshow("result",imgRawDrawing)
+   
+    invmatrix = cv2.getPerspectiveTransform(pt2, pt1)
+    imgInWrap = cv2.warpPerspective(imgRawDrawing, invmatrix, (widthImg, heightImg))
 
+   
+    cv2.imshow("FINAL33",imgInWrap)
+    
+
+    # cv2.imshow("FINAL",imgFinal)
 
 # cv2.imshow("Image",img)
 # cv2.imshow("Image1",imgGray)
